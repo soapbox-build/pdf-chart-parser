@@ -50,10 +50,41 @@ def client(monkeypatch):
     return TestClient(_load(monkeypatch, GOOD).app)
 
 
+SOURCE = "https://github.com/soapbox-build/pdf-chart-parser"
+LINK = f'<{SOURCE}>; rel="source"'
+
+
 def test_no_authorization_header_is_refused(client):
     resp = client.post("/mcp")
     assert resp.status_code == 401
-    assert resp.json() == {"error": "unauthorized"}
+    assert resp.json() == {"error": "unauthorized", "source": SOURCE}
+
+
+# AGPL-3.0 section 13: everyone who interacts with the service over a network is offered
+# its source, so the offer must reach a caller who is refused as well as one who is let in.
+
+
+def test_a_refusal_offers_the_source(client):
+    assert client.post("/mcp").headers["link"] == LINK
+
+
+def test_an_accepted_request_offers_the_source(client):
+    resp = client.post("/mcp", headers={"Authorization": f"Bearer {GOOD}"})
+    assert resp.text == "reached upstream"
+    assert resp.headers["link"] == LINK
+
+
+def test_source_route_answers_without_a_token(client):
+    resp = client.get("/source")
+    assert resp.status_code == 200
+    assert resp.json() == {"source": SOURCE, "license": "AGPL-3.0-or-later"}
+    assert resp.headers["link"] == LINK
+
+
+def test_only_get_source_skips_auth(client):
+    assert client.post("/source").status_code == 401
+    assert client.get("/mcp").status_code == 401
+    assert client.get("/source/").status_code == 401
 
 
 def test_wrong_token_is_refused(client):

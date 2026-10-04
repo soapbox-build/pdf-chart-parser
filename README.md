@@ -13,7 +13,8 @@ It is published automatically. Do not send changes here; they would be overwritt
   It is licensed AGPL-3.0-or-later; see `upstream/LICENSE` and `upstream/README.md`.
   Only the files needed to build and test the program are included.
 - `auth_app.py` is Soapbox's modification: it requires a bearer token on every MCP
-  request.
+  request, and advertises this repository in a `Link: rel="source"` header and at
+  `GET /source`.
 - `Dockerfile`, `requirements.in`, `requirements.lock`, `requirements.txt`,
   `pytest.ini`, `.dockerignore` and `tests/` are the build and tests of the deployed
   image. The Dockerfile fetches upstream at the same commit as `upstream/`.
