@@ -18,7 +18,13 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import JSONResponse
 
 from pdf_chart_parser.server import mcp
-from bounded_extract import bound_to_markdown, run_tools_in_threads
+from bounded_extract import (
+    bound_add_text_layer,
+    bound_to_markdown,
+    disclose_ocr,
+    record_selected_pages,
+    run_tools_in_threads,
+)
 from strict_tool_arguments import strict_tool_arguments
 
 SOURCE_URL = "https://github.com/soapbox-build/pdf-chart-parser"
@@ -54,10 +60,15 @@ strict_tool_arguments(mcp)
 run_tools_in_threads(mcp)
 try:
     import pymupdf4llm
+    from pdf_chart_parser import document
 except ImportError:  # the unit tests stub the upstream and do not install the PyMuPDF stack
-    pymupdf4llm = None
+    pymupdf4llm = document = None
 if pymupdf4llm is not None:
-    pymupdf4llm.to_markdown = bound_to_markdown(pymupdf4llm.to_markdown)
+    pymupdf4llm.to_markdown = disclose_ocr(bound_to_markdown(pymupdf4llm.to_markdown))
+    # document.py imported these two by name, so they are patched where it looks them up. The
+    # Dockerfile asserts all three patches are in place, so a no-op cannot ship.
+    document.doc_needs_ocr = record_selected_pages(document.doc_needs_ocr)
+    document.add_text_layer = bound_add_text_layer(document.add_text_layer)
 
 app = mcp.streamable_http_app()
 app.add_middleware(BearerAuth)

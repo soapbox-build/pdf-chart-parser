@@ -4,7 +4,7 @@ FROM python:3.12-slim
 # (opencv-python-headless, pytesseract) needs at runtime. git fetches upstream.
 RUN apt-get update && apt-get install -y --no-install-recommends \
     git \
-    tesseract-ocr tesseract-ocr-eng \
+    tesseract-ocr tesseract-ocr-eng ghostscript qpdf \
     libgl1 libglib2.0-0 libsm6 libxrender1 libxext6 \
     && rm -rf /var/lib/apt/lists/*
 
@@ -30,7 +30,8 @@ RUN git init -q /opt/pdf-chart-parser \
 
 # Fail the build, not the first request, if upstream no longer exposes the
 # FastMCP app auth_app.py wraps, or the raster path cannot import.
-RUN python -c "from pdf_chart_parser.server import mcp; mcp.streamable_http_app(); import cv2, pytesseract"
+RUN python -c "from pdf_chart_parser.server import mcp; mcp.streamable_http_app(); import cv2, pytesseract, ocrmypdf" \
+    && gs --version && qpdf --version && tesseract --version
 
 WORKDIR /app
 COPY auth_app.py strict_tool_arguments.py bounded_extract.py /app/
@@ -38,6 +39,8 @@ COPY auth_app.py strict_tool_arguments.py bounded_extract.py /app/
 # And that the wrapper, on the real upstream, leaves every tool refusing an undeclared
 # argument. The token is a throwaway for the import only; the service's comes from its env.
 RUN MCP_AUTH_TOKEN=build-time-import-check-not-a-secret-000 python -c "import auth_app; tools = auth_app.mcp._tool_manager.list_tools(); assert tools and all(t.fn_metadata.arg_model.model_config.get('extra') == 'forbid' for t in tools), tools"
+
+RUN MCP_AUTH_TOKEN=build-time-import-check-not-a-secret-000 python -c "import auth_app, pymupdf4llm; from pdf_chart_parser import document; assert all(hasattr(f, '__wrapped__') for f in (pymupdf4llm.to_markdown, document.doc_needs_ocr, document.add_text_layer)), 'bounded_extract patches not applied'"
 
 RUN useradd --system --uid 10001 --no-create-home app
 USER 10001
