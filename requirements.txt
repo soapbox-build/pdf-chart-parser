@@ -1,0 +1,4 @@
+# What CI needs to test auth_app.py (ci.yml installs this, then pytest).
+# The image installs requirements.lock instead; these pins match it.
+starlette==1.6.0
+httpx==0.28.1

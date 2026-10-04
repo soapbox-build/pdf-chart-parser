@@ -1,0 +1,25 @@
+# Inputs to requirements.lock. Regenerate with the command in README.md.
+#
+# The upstream package itself (github.com/haoxinm/pdf-chart-parser) is NOT
+# listed here: the Dockerfile clones it at a pinned commit and installs it with
+# --no-deps, so everything it imports comes from the lock below. Its runtime
+# dependencies and the `raster` extra are copied from its pyproject.toml at
+# that commit.
+
+# upstream [project.dependencies]
+pymupdf>=1.24.0
+pymupdf4llm>=0.0.17
+mcp>=1.9.0,<2
+pydantic>=2.7.0
+pillow>=10.3.0
+numpy>=1.26.0
+httpx>=0.27.0
+typer>=0.12.0
+
+# upstream [project.optional-dependencies] raster
+opencv-python-headless>=4.9.0
+pytesseract>=0.3.10
+
+# auth_app.py
+uvicorn
+starlette

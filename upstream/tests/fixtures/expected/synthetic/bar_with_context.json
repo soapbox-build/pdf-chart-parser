@@ -1,0 +1,73 @@
+{
+  "_note": "Values are synthetically generated with known ground truth. Human verification recommended before use with real bills.",
+  "chart_type": "bar",
+  "tolerance_pct": 5.0,
+  "series": [
+    {
+      "type": "bar",
+      "unit": "dollars",
+      "points": [
+        {
+          "x_label": "MAR",
+          "value": 50.0
+        },
+        {
+          "x_label": "APR",
+          "value": 40.0
+        },
+        {
+          "x_label": "MAY",
+          "value": 40.0
+        },
+        {
+          "x_label": "JUN",
+          "value": 90.0
+        },
+        {
+          "x_label": "JUL",
+          "value": 190.0
+        },
+        {
+          "x_label": "AUG",
+          "value": 210.0
+        },
+        {
+          "x_label": "SEP",
+          "value": 200.0
+        },
+        {
+          "x_label": "OCT",
+          "value": 115.0
+        },
+        {
+          "x_label": "NOV",
+          "value": 60.0
+        },
+        {
+          "x_label": "DEC",
+          "value": 45.0
+        },
+        {
+          "x_label": "JAN",
+          "value": 45.0
+        },
+        {
+          "x_label": "FEB",
+          "value": 50.0
+        },
+        {
+          "x_label": "MAR",
+          "value": 40.0
+        },
+        {
+          "x_label": "APR",
+          "value": 45.0
+        },
+        {
+          "x_label": "MAY",
+          "value": 50.0
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,61 @@
+{
+  "_note": "Values are synthetically generated with known ground truth. Human verification recommended before use with real bills.",
+  "chart_type": "line",
+  "tolerance_pct": 2.0,
+  "series": [
+    {
+      "type": "line",
+      "unit": "kwh",
+      "points": [
+        {
+          "x_label": "JAN",
+          "value": 55.1
+        },
+        {
+          "x_label": "FEB",
+          "value": 62.3
+        },
+        {
+          "x_label": "MAR",
+          "value": 78.9
+        },
+        {
+          "x_label": "APR",
+          "value": 85.0
+        },
+        {
+          "x_label": "MAY",
+          "value": 90.2
+        },
+        {
+          "x_label": "JUN",
+          "value": 95.5
+        },
+        {
+          "x_label": "JUL",
+          "value": 88.7
+        },
+        {
+          "x_label": "AUG",
+          "value": 82.1
+        },
+        {
+          "x_label": "SEP",
+          "value": 75.3
+        },
+        {
+          "x_label": "OCT",
+          "value": 68.0
+        },
+        {
+          "x_label": "NOV",
+          "value": 60.4
+        },
+        {
+          "x_label": "DEC",
+          "value": 58.8
+        }
+      ]
+    }
+  ]
+}

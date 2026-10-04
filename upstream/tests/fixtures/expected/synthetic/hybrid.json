@@ -1,0 +1,115 @@
+{
+  "_note": "Values are synthetically generated with known ground truth. Human verification recommended before use with real bills.",
+  "chart_type": "hybrid",
+  "tolerance_pct": 2.0,
+  "series": [
+    {
+      "type": "bar",
+      "unit": "dollars",
+      "points": [
+        {
+          "x_label": "JAN",
+          "value": 210.0
+        },
+        {
+          "x_label": "FEB",
+          "value": 225.0
+        },
+        {
+          "x_label": "MAR",
+          "value": 190.0
+        },
+        {
+          "x_label": "APR",
+          "value": 240.0
+        },
+        {
+          "x_label": "MAY",
+          "value": 260.0
+        },
+        {
+          "x_label": "JUN",
+          "value": 280.0
+        },
+        {
+          "x_label": "JUL",
+          "value": 295.0
+        },
+        {
+          "x_label": "AUG",
+          "value": 275.0
+        },
+        {
+          "x_label": "SEP",
+          "value": 250.0
+        },
+        {
+          "x_label": "OCT",
+          "value": 230.0
+        },
+        {
+          "x_label": "NOV",
+          "value": 205.0
+        },
+        {
+          "x_label": "DEC",
+          "value": 220.0
+        }
+      ]
+    },
+    {
+      "type": "line",
+      "unit": "kwh",
+      "points": [
+        {
+          "x_label": "JAN",
+          "value": 520.0
+        },
+        {
+          "x_label": "FEB",
+          "value": 580.0
+        },
+        {
+          "x_label": "MAR",
+          "value": 650.0
+        },
+        {
+          "x_label": "APR",
+          "value": 700.0
+        },
+        {
+          "x_label": "MAY",
+          "value": 720.0
+        },
+        {
+          "x_label": "JUN",
+          "value": 750.0
+        },
+        {
+          "x_label": "JUL",
+          "value": 730.0
+        },
+        {
+          "x_label": "AUG",
+          "value": 690.0
+        },
+        {
+          "x_label": "SEP",
+          "value": 640.0
+        },
+        {
+          "x_label": "OCT",
+          "value": 600.0
+        },
+        {
+          "x_label": "NOV",
+          "value": 555.0
+        },
+        {
+          "x_label": "DEC",
+          "value": 510.0
+        }
+      ]
+    }
+  ]
+}
