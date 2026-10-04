@@ -18,6 +18,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import JSONResponse
 
 from pdf_chart_parser.server import mcp
+from strict_tool_arguments import strict_tool_arguments
 
 SOURCE_URL = "https://github.com/soapbox-build/pdf-chart-parser"
 SOURCE_LINK = f'<{SOURCE_URL}>; rel="source"'
@@ -41,6 +42,11 @@ class BearerAuth(BaseHTTPMiddleware):
         response.headers["Link"] = SOURCE_LINK
         return response
 
+
+# Upstream registers its tools on the mcp 1.29 SDK's FastMCP, which silently drops an
+# argument no signature declares. Refuse it by name instead (see strict_tool_arguments.py);
+# scripts/refuse-contract probes every tool for it.
+strict_tool_arguments(mcp)
 
 app = mcp.streamable_http_app()
 app.add_middleware(BearerAuth)

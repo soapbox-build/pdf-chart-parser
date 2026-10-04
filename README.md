@@ -15,6 +15,9 @@ It is published automatically. Do not send changes here; they would be overwritt
 - `auth_app.py` is Soapbox's modification: it requires a bearer token on every MCP
   request, and advertises this repository in a `Link: rel="source"` header and at
   `GET /source`.
+- `strict_tool_arguments.py` is Soapbox's modification: applied by `auth_app.py`, it
+  makes every upstream tool refuse, by name, an argument its signature does not declare,
+  instead of silently dropping it.
 - `Dockerfile`, `requirements.in`, `requirements.lock`, `requirements.txt`,
   `pytest.ini`, `.dockerignore` and `tests/` are the build and tests of the deployed
   image. The Dockerfile fetches upstream at the same commit as `upstream/`.

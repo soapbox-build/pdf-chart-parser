@@ -2,28 +2,45 @@
 upstream parser, which has no auth of its own.
 
 Upstream is stubbed here: CI installs requirements.txt, not the parser's
-PyMuPDF/OpenCV stack. The Dockerfile's build-time import check is what proves
-the real `pdf_chart_parser.server.mcp` still exposes `streamable_http_app()`.
+PyMuPDF/OpenCV stack. The stub's tool sits on a REAL mcp 1.29 FastMCP, the SDK upstream
+uses, shaped like upstream's tools. The Dockerfile's build-time checks prove the real
+`pdf_chart_parser.server.mcp` still exposes `streamable_http_app()` and comes out strict,
+and scripts/refuse-contract probes every real tool.
 """
 
+import asyncio
 import importlib
 import sys
 import types
 
 import pytest
+from mcp.server.fastmcp import FastMCP
+from mcp.server.fastmcp.exceptions import ToolError
 from starlette.applications import Starlette
 from starlette.responses import PlainTextResponse
 from starlette.routing import Route
 from starlette.testclient import TestClient
 
 GOOD = "t" * 40
+PROBE = "undeclared_argument"
 
 
 def _install_stub_upstream(monkeypatch):
     async def reached(request):
         return PlainTextResponse("reached upstream")
 
+    real = FastMCP("stub-upstream")
+
+    @real.tool()
+    def extract_pdf_document(pdf_url: str | None = None, pages: list[int] | None = None) -> str:
+        return "extracted"
+
     class StubMCP:
+        _tool_manager = real._tool_manager
+
+        def call_tool(self, name, arguments):
+            return real.call_tool(name, arguments)
+
         def streamable_http_app(self):
             return Starlette(routes=[Route("/mcp", reached, methods=["GET", "POST"])])
 
@@ -111,3 +128,21 @@ def test_short_token_refuses_to_start(monkeypatch):
 def test_unset_token_refuses_to_start(monkeypatch):
     with pytest.raises(KeyError):
         _load(monkeypatch, None)
+
+
+# mcp 1.29's FastMCP drops an undeclared argument silently; the wrapper must make
+# upstream's tools refuse it by name (strict_tool_arguments.py).
+
+
+def test_an_undeclared_argument_is_refused_by_name(monkeypatch):
+    auth_app = _load(monkeypatch, GOOD)
+    with pytest.raises(ToolError) as caught:
+        asyncio.run(auth_app.mcp.call_tool("extract_pdf_document", {PROBE: 1}))
+    text = str(caught.value).replace(repr({PROBE: 1}), "")
+    assert PROBE in text and "Extra inputs are not permitted" in text
+
+
+def test_declared_arguments_still_reach_the_tool(monkeypatch):
+    auth_app = _load(monkeypatch, GOOD)
+    out = asyncio.run(auth_app.mcp.call_tool("extract_pdf_document", {"pdf_url": "https://example.com/x.pdf"}))
+    assert "extracted" in str(out)

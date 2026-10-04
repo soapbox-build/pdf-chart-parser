@@ -1,4 +1,6 @@
 # What CI needs to test auth_app.py (ci.yml installs this, then pytest).
-# The image installs requirements.lock instead; these pins match it.
+# The image installs requirements.lock instead; these pins match it. mcp is the SDK
+# upstream's FastMCP comes from, so strict_tool_arguments is tested on the real thing.
 starlette==1.6.0
 httpx==0.28.1
+mcp==1.29.1

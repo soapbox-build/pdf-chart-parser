@@ -33,7 +33,11 @@ RUN git init -q /opt/pdf-chart-parser \
 RUN python -c "from pdf_chart_parser.server import mcp; mcp.streamable_http_app(); import cv2, pytesseract"
 
 WORKDIR /app
-COPY auth_app.py /app/auth_app.py
+COPY auth_app.py strict_tool_arguments.py /app/
+
+# And that the wrapper, on the real upstream, leaves every tool refusing an undeclared
+# argument. The token is a throwaway for the import only; the service's comes from its env.
+RUN MCP_AUTH_TOKEN=build-time-import-check-not-a-secret-000 python -c "import auth_app; tools = auth_app.mcp._tool_manager.list_tools(); assert tools and all(t.fn_metadata.arg_model.model_config.get('extra') == 'forbid' for t in tools), tools"
 
 RUN useradd --system --uid 10001 --no-create-home app
 USER 10001
