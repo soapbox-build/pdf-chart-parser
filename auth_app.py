@@ -18,6 +18,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import JSONResponse
 
 from pdf_chart_parser.server import mcp
+from bounded_extract import bound_to_markdown, run_tools_in_threads
 from strict_tool_arguments import strict_tool_arguments
 
 SOURCE_URL = "https://github.com/soapbox-build/pdf-chart-parser"
@@ -47,6 +48,16 @@ class BearerAuth(BaseHTTPMiddleware):
 # argument no signature declares. Refuse it by name instead (see strict_tool_arguments.py);
 # scripts/refuse-contract probes every tool for it.
 strict_tool_arguments(mcp)
+
+# A slow extraction used to freeze the event loop for every other request, and a vector-dense
+# page took minutes in layout analysis (see bounded_extract.py for the measurements).
+run_tools_in_threads(mcp)
+try:
+    import pymupdf4llm
+except ImportError:  # the unit tests stub the upstream and do not install the PyMuPDF stack
+    pymupdf4llm = None
+if pymupdf4llm is not None:
+    pymupdf4llm.to_markdown = bound_to_markdown(pymupdf4llm.to_markdown)
 
 app = mcp.streamable_http_app()
 app.add_middleware(BearerAuth)

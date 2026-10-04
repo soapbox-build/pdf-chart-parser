@@ -33,7 +33,7 @@ RUN git init -q /opt/pdf-chart-parser \
 RUN python -c "from pdf_chart_parser.server import mcp; mcp.streamable_http_app(); import cv2, pytesseract"
 
 WORKDIR /app
-COPY auth_app.py strict_tool_arguments.py /app/
+COPY auth_app.py strict_tool_arguments.py bounded_extract.py /app/
 
 # And that the wrapper, on the real upstream, leaves every tool refusing an undeclared
 # argument. The token is a throwaway for the import only; the service's comes from its env.

@@ -18,6 +18,9 @@ It is published automatically. Do not send changes here; they would be overwritt
 - `strict_tool_arguments.py` is Soapbox's modification: applied by `auth_app.py`, it
   makes every upstream tool refuse, by name, an argument its signature does not declare,
   instead of silently dropping it.
+- `bounded_extract.py` is Soapbox's modification: applied by `auth_app.py`, it runs every
+  tool in a worker thread and reads a vector-dense page as plain text instead of through
+  pymupdf4llm's layout analysis, which does not finish on such a page in useful time.
 - `Dockerfile`, `requirements.in`, `requirements.lock`, `requirements.txt`,
   `pytest.ini`, `.dockerignore` and `tests/` are the build and tests of the deployed
   image. The Dockerfile fetches upstream at the same commit as `upstream/`.
