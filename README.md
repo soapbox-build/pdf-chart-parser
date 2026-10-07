@@ -21,6 +21,9 @@ It is published automatically. Do not send changes here; they would be overwritt
 - `bounded_extract.py` is Soapbox's modification: applied by `auth_app.py`, it runs every
   tool in a worker thread and reads a vector-dense page as plain text instead of through
   pymupdf4llm's layout analysis, which does not finish on such a page in useful time.
+- `page_counts.py` is Soapbox's addition: registered by `auth_app.py`, it adds the
+  `count_pdf_page_chars` tool, which returns each page's extracted character count and an
+  image-only flag, and never the document's text.
 - `Dockerfile`, `requirements.in`, `requirements.lock`, `requirements.txt`,
   `pytest.ini`, `.dockerignore` and `tests/` are the build and tests of the deployed
   image. The Dockerfile fetches upstream at the same commit as `upstream/`.

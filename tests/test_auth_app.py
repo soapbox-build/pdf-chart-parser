@@ -146,3 +146,14 @@ def test_declared_arguments_still_reach_the_tool(monkeypatch):
     auth_app = _load(monkeypatch, GOOD)
     out = asyncio.run(auth_app.mcp.call_tool("extract_pdf_document", {"pdf_url": "https://example.com/x.pdf"}))
     assert "extracted" in str(out)
+
+
+def test_the_page_count_tool_is_served_and_strict(monkeypatch):
+    # count_pdf_page_chars (page_counts.py) is registered on the wrapped app before the strict
+    # wrapper, so it refuses an undeclared argument like upstream's tools do.
+    auth_app = _load(monkeypatch, GOOD)
+    names = [t.name for t in auth_app.mcp._tool_manager.list_tools()]
+    assert "count_pdf_page_chars" in names, names
+    with pytest.raises(ToolError) as caught:
+        asyncio.run(auth_app.mcp.call_tool("count_pdf_page_chars", {"pdf_url": "https://x.test/a.pdf", PROBE: 1}))
+    assert PROBE in str(caught.value).replace(repr({"pdf_url": "https://x.test/a.pdf", PROBE: 1}), "")

@@ -34,11 +34,15 @@ RUN python -c "from pdf_chart_parser.server import mcp; mcp.streamable_http_app(
     && gs --version && qpdf --version && tesseract --version
 
 WORKDIR /app
-COPY auth_app.py strict_tool_arguments.py bounded_extract.py /app/
+COPY auth_app.py strict_tool_arguments.py bounded_extract.py page_counts.py /app/
 
 # And that the wrapper, on the real upstream, leaves every tool refusing an undeclared
 # argument. The token is a throwaway for the import only; the service's comes from its env.
 RUN MCP_AUTH_TOKEN=build-time-import-check-not-a-secret-000 python -c "import auth_app; tools = auth_app.mcp._tool_manager.list_tools(); assert tools and all(t.fn_metadata.arg_model.model_config.get('extra') == 'forbid' for t in tools), tools"
+
+# count_pdf_page_chars (page_counts.py) is registered on the real upstream app, and the real
+# PyMuPDF counts a one-page PDF: a blank page is image_only, and nothing but numbers comes back.
+RUN MCP_AUTH_TOKEN=build-time-import-check-not-a-secret-000 python -c "import auth_app, pymupdf, page_counts; names = [t.name for t in auth_app.mcp._tool_manager.list_tools()]; assert 'count_pdf_page_chars' in names, names; d = pymupdf.open(); d.new_page(); r = page_counts.page_counts(d); assert r['page_chars'] == {'1': 0} and r['image_only_pages'] == [1], r"
 
 RUN MCP_AUTH_TOKEN=build-time-import-check-not-a-secret-000 python -c "import auth_app, pymupdf4llm; from pdf_chart_parser import document; assert all(hasattr(f, '__wrapped__') for f in (pymupdf4llm.to_markdown, document.doc_needs_ocr, document.add_text_layer)), 'bounded_extract patches not applied'"
 

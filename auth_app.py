@@ -25,6 +25,7 @@ from bounded_extract import (
     record_selected_pages,
     run_tools_in_threads,
 )
+from page_counts import register_page_counts
 from strict_tool_arguments import strict_tool_arguments
 
 SOURCE_URL = "https://github.com/soapbox-build/pdf-chart-parser"
@@ -49,6 +50,10 @@ class BearerAuth(BaseHTTPMiddleware):
         response.headers["Link"] = SOURCE_LINK
         return response
 
+
+# Soapbox's own tool: per-page character counts, no text (page_counts.py). Registered first so
+# the two wrappers below apply to it as they do to upstream's tools.
+register_page_counts(mcp)
 
 # Upstream registers its tools on the mcp 1.29 SDK's FastMCP, which silently drops an
 # argument no signature declares. Refuse it by name instead (see strict_tool_arguments.py);
