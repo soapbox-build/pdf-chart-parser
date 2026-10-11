@@ -178,8 +178,108 @@ def disclose_ocr(to_markdown):
     return wrapped
 
 
-def run_tools_in_threads(mcp) -> int:
-    """Make every registered sync tool run in a worker thread instead of on the event loop."""
+# ---- Memory: one extraction at a time, and a bounded page-image render -----------------------
+#
+# MEASURED 2026-10-10, Cloud Run logs for pdf-chart-parser (revision 00008-5mn, 2 GiB, 2 CPU,
+# containerConcurrency 160): 19 kills of "Memory limit of 2048 MiB exceeded" in two windows,
+# 15:35-15:46Z and 17:04-17:19Z. Each kill drops every request in flight on the instance as a 503,
+# and extract_pdf_document with render_page_images on a 45-page drawing set failed 17 of 18 times.
+# run_tools_in_threads gave every call its own thread with no cap, so concurrent extractions each
+# held a parsed document, pymupdf4llm's layout state and their rendered pages at once.
+#
+# Upstream's render loop already rasterises, PNG-encodes and drops each page's pixmap before the
+# next (document.py, the get_pixmap(...).tobytes("png") line), so one call's peak is one pixmap plus
+# the PNGs kept, capped by upstream at 18 MB. What was unbounded was the number of calls. So:
+# (a) extract_pdf_document and extract_usage_chart hold one of MAX_CONCURRENT_EXTRACTIONS slots per
+# instance (default 1); a queued call waits in its worker thread, never on the event loop.
+# (b) a call with render_page_images reads at most MAX_RENDER_PAGES pages and names the pages it did
+# not read, as MAX_OCR_PAGES does for OCR. A large-format sheet is 50+ MB as a pixmap at 100 dpi
+# and 200 MB at 200, and ten of them already take most of the gateway's 120 s.
+# (c) image_dpi is capped at MAX_RENDER_DPI, upstream's default (its own ceiling is 200).
+
+MAX_CONCURRENT_EXTRACTIONS = int(os.environ.get("PDF_MAX_CONCURRENT_EXTRACTIONS", "1"))
+MAX_RENDER_PAGES = int(os.environ.get("PDF_MAX_RENDER_PAGES", "10"))
+MAX_RENDER_DPI = int(os.environ.get("PDF_MAX_RENDER_DPI", "100"))
+
+# count_pdf_page_chars is not here: it returns counts, renders nothing and runs no layout analysis.
+SERIALIZED_TOOLS = frozenset({"extract_pdf_document", "extract_usage_chart"})
+
+_extraction_slots = threading.BoundedSemaphore(MAX_CONCURRENT_EXTRACTIONS)
+
+
+def _page_ranges(pages: list[int]) -> str:
+    """[11, 12, 13, 20] -> "11-13, 20"."""
+    out, start, prev = [], None, None
+    for p in pages + [None]:
+        if start is not None and p == prev + 1:
+            prev = p
+            continue
+        if start is not None:
+            out.append(str(start) if start == prev else f"{start}-{prev}")
+        start = prev = p
+    return ", ".join(out)
+
+
+def bound_page_images(original):
+    """Wrap upstream's extract_pdf_document: cap the DPI, and the pages of a rendering call."""
+
+    @functools.wraps(original)
+    def extract_pdf_document(**kwargs):
+        notes = []
+        asked_dpi = kwargs.get("image_dpi")
+        if asked_dpi is not None and asked_dpi > MAX_RENDER_DPI:
+            kwargs["image_dpi"] = MAX_RENDER_DPI
+            notes.append(
+                f"page images rendered at {MAX_RENDER_DPI} dpi, not the {asked_dpi} requested: this service "
+                f"renders at most {MAX_RENDER_DPI} dpi to stay inside its memory"
+            )
+        rest: list[int] | None = None  # 1-based pages asked for and not read; None when not capped
+        if kwargs.get("render_page_images"):
+            pages = kwargs.get("pages")
+            if pages is None:
+                kwargs["pages"] = list(range(1, MAX_RENDER_PAGES + 1))
+                rest = []  # filled from total_pages once upstream has opened the document
+            else:
+                distinct = list(dict.fromkeys(p for p in pages if p >= 1))
+                if len(distinct) > MAX_RENDER_PAGES:
+                    kwargs["pages"], rest = distinct[:MAX_RENDER_PAGES], distinct[MAX_RENDER_PAGES:]
+        doc, images, native = original(**kwargs)
+        if rest is not None:
+            total = doc.get("total_pages") or 0
+            if not rest:
+                rest = list(range(MAX_RENDER_PAGES + 1, total + 1))
+            rest = [p for p in rest if p <= total]
+            if rest:
+                doc["truncated"] = True
+                label = "page" if len(rest) == 1 else "pages"
+                notes.append(
+                    f"{label} {_page_ranges(rest)} {'was' if len(rest) == 1 else 'were'} NOT read: a call with "
+                    f"render_page_images reads at most {MAX_RENDER_PAGES} pages; call again with pages=[...] "
+                    f"naming at most {MAX_RENDER_PAGES} of them"
+                )
+        if notes:
+            doc.setdefault("notes", []).extend(notes)
+        return doc, images, native
+
+    return extract_pdf_document
+
+
+def _one_at_a_time(fn, slots):
+    @functools.wraps(fn)
+    def run(*args, **kwargs):
+        with slots:
+            return fn(*args, **kwargs)
+
+    return run
+
+
+def run_tools_in_threads(mcp, slots=None) -> int:
+    """Make every registered sync tool run in a worker thread instead of on the event loop.
+
+    The tools in SERIALIZED_TOOLS also take one of `slots` (default: this process's
+    MAX_CONCURRENT_EXTRACTIONS) for the whole call, acquired inside the worker thread.
+    """
+    slots = _extraction_slots if slots is None else slots
     tools = mcp._tool_manager.list_tools()
     if not tools:
         raise RuntimeError("run_tools_in_threads: no tools registered; call it after registering them")
@@ -188,6 +288,8 @@ def run_tools_in_threads(mcp) -> int:
         if tool.is_async:
             continue
         sync_fn = tool.fn
+        if tool.name in SERIALIZED_TOOLS:
+            sync_fn = _one_at_a_time(sync_fn, slots)
 
         async def threaded(*args, _fn=sync_fn, **kwargs):
             return await asyncio.to_thread(_fn, *args, **kwargs)

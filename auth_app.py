@@ -20,6 +20,7 @@ from starlette.responses import JSONResponse
 from pdf_chart_parser.server import mcp
 from bounded_extract import (
     bound_add_text_layer,
+    bound_page_images,
     bound_to_markdown,
     disclose_ocr,
     record_selected_pages,
@@ -61,14 +62,18 @@ register_page_counts(mcp)
 strict_tool_arguments(mcp)
 
 # A slow extraction used to freeze the event loop for every other request, and a vector-dense
-# page took minutes in layout analysis (see bounded_extract.py for the measurements).
+# page took minutes in layout analysis. Concurrent extractions ran the instance out of memory, so
+# they now run one at a time per instance (see bounded_extract.py for the measurements).
 run_tools_in_threads(mcp)
 try:
     import pymupdf4llm
     from pdf_chart_parser import document
+    from pdf_chart_parser import server as upstream_server
 except ImportError:  # the unit tests stub the upstream and do not install the PyMuPDF stack
-    pymupdf4llm = document = None
+    pymupdf4llm = document = upstream_server = None
 if pymupdf4llm is not None:
+    # server.py imported extract_pdf_document as _extract_pdf_document and looks it up at call time.
+    upstream_server._extract_pdf_document = bound_page_images(upstream_server._extract_pdf_document)
     pymupdf4llm.to_markdown = disclose_ocr(bound_to_markdown(pymupdf4llm.to_markdown))
     # document.py imported these two by name, so they are patched where it looks them up. The
     # Dockerfile asserts all three patches are in place, so a no-op cannot ship.

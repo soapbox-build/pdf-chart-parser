@@ -44,7 +44,7 @@ RUN MCP_AUTH_TOKEN=build-time-import-check-not-a-secret-000 python -c "import au
 # PyMuPDF counts a one-page PDF: a blank page is image_only, and nothing but numbers comes back.
 RUN MCP_AUTH_TOKEN=build-time-import-check-not-a-secret-000 python -c "import auth_app, pymupdf, page_counts; names = [t.name for t in auth_app.mcp._tool_manager.list_tools()]; assert 'count_pdf_page_chars' in names, names; d = pymupdf.open(); d.new_page(); r = page_counts.page_counts(d); assert r['page_chars'] == {'1': 0} and r['image_only_pages'] == [1], r"
 
-RUN MCP_AUTH_TOKEN=build-time-import-check-not-a-secret-000 python -c "import auth_app, pymupdf4llm; from pdf_chart_parser import document; assert all(hasattr(f, '__wrapped__') for f in (pymupdf4llm.to_markdown, document.doc_needs_ocr, document.add_text_layer)), 'bounded_extract patches not applied'"
+RUN MCP_AUTH_TOKEN=build-time-import-check-not-a-secret-000 python -c "import auth_app, pymupdf4llm; from pdf_chart_parser import document, server; assert all(hasattr(f, '__wrapped__') for f in (pymupdf4llm.to_markdown, document.doc_needs_ocr, document.add_text_layer, server._extract_pdf_document)), 'bounded_extract patches not applied'"
 
 RUN useradd --system --uid 10001 --no-create-home app
 USER 10001
