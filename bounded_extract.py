@@ -195,11 +195,20 @@ def disclose_ocr(to_markdown):
 # (b) a call with render_page_images reads at most MAX_RENDER_PAGES pages and names the pages it did
 # not read, as MAX_OCR_PAGES does for OCR. A large-format sheet is 50+ MB as a pixmap at 100 dpi
 # and 200 MB at 200, and ten of them already take most of the gateway's 120 s.
-# (c) image_dpi is capped at MAX_RENDER_DPI, upstream's default (its own ceiling is 200).
+# (c) image_dpi is capped at MAX_RENDER_DPI, upstream's own ceiling of 200.
+#
+# 200, NOT 100 (task 1306, 2026-10-25). The cap was upstream's 100 dpi default, and at 100 dpi a drawing set's equipment
+# schedules are unreadable (P43 E401 and P504: a seat rasterised the sheets locally and transcribed them by hand). The
+# memory case for 100 no longer holds: the instance is 8Gi (at#2195) and runs one extraction at a time, and upstream
+# keeps one pixmap at a time. Measured on a 36 x 24 inch sheet with 15,000 vector lines and 60 schedule rows, rendered as
+# upstream renders (get_pixmap(dpi).tobytes("png")), one process each: 100 dpi 0.15 s, 162 MB peak RSS; 200 dpi 0.55 s,
+# 374 MB peak RSS (the script: docs/superpowers/engagements/Adhoc-Work-W5-Economics/dpi-measure.py on agent-tooling
+# branch seat/Adhoc-Work-W5-Economics). The 120 s pressure is pymupdf4llm's layout
+# analysis, which the dpi does not change. MAX_RENDER_PAGES stays 10.
 
 MAX_CONCURRENT_EXTRACTIONS = int(os.environ.get("PDF_MAX_CONCURRENT_EXTRACTIONS", "1"))
 MAX_RENDER_PAGES = int(os.environ.get("PDF_MAX_RENDER_PAGES", "10"))
-MAX_RENDER_DPI = int(os.environ.get("PDF_MAX_RENDER_DPI", "100"))
+MAX_RENDER_DPI = int(os.environ.get("PDF_MAX_RENDER_DPI", "200"))
 
 # count_pdf_page_chars is not here: it returns counts, renders nothing and runs no layout analysis.
 SERIALIZED_TOOLS = frozenset({"extract_pdf_document", "extract_usage_chart"})

@@ -166,16 +166,25 @@ def test_a_text_only_call_is_not_capped():
 
 def test_a_dpi_above_the_cap_is_lowered_and_the_caller_is_told():
     original, calls = _recording_extract(3)
-    doc, _, _ = bound_page_images(original)(pdf_url="u", render_page_images=True, image_dpi=200)
+    doc, _, _ = bound_page_images(original)(pdf_url="u", render_page_images=True, image_dpi=300)
     assert calls[0]["image_dpi"] == MAX_RENDER_DPI
-    assert any(f"rendered at {MAX_RENDER_DPI} dpi, not the 200 requested" in n for n in doc["notes"])
+    assert any(f"rendered at {MAX_RENDER_DPI} dpi, not the 300 requested" in n for n in doc["notes"])
 
 
 def test_the_dpi_cap_also_applies_to_the_scanned_page_images_of_a_text_call():
     # Upstream renders a scanned page whether or not render_page_images is set.
     original, calls = _recording_extract(3)
-    bound_page_images(original)(pdf_url="u", image_dpi=200)
+    bound_page_images(original)(pdf_url="u", image_dpi=300)
     assert calls[0]["image_dpi"] == MAX_RENDER_DPI
+
+
+def test_a_schedule_can_be_read_at_200_dpi():
+    # Task 1306: at 100 dpi a drawing set's equipment schedules were unreadable. Fails on main, whose cap was 100.
+    assert MAX_RENDER_DPI == 200
+    original, calls = _recording_extract(3)
+    doc, _, _ = bound_page_images(original)(pdf_url="u", pages=[2], render_page_images=True, image_dpi=200)
+    assert calls[0]["image_dpi"] == 200
+    assert doc["notes"] == []
 
 
 def test_a_failed_extraction_keeps_its_shape():
